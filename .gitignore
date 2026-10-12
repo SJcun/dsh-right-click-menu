@@ -1,0 +1,12 @@
+node_modules/
+pnpm-lock.yaml
+
+# Pack artifacts from a local `npm pack`
+*.tgz
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

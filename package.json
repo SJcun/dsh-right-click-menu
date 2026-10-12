@@ -1,0 +1,52 @@
+{
+  "name": "dsh-right-click-menu",
+  "version": "0.1.0",
+  "description": "Right-click context menu for the DSH Web GUI: a workspace project or file reference opens in the file manager, an HTTP(S) link opens in the external browser",
+  "license": "MIT",
+  "author": "3n",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node test/detection.test.mjs",
+    "check:live": "node scripts/live-bundle.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "context-menu",
+    "right-click",
+    "client-plugin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  }
+}
