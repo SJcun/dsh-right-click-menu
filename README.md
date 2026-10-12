@@ -1,5 +1,7 @@
 # dsh-right-click-menu
 
+English | [中文](README.zh.md)
+
 Right-click support for the DSH Web GUI. Right-clicking a **file reference** reveals it
 in the file manager; right-clicking a **link** opens it in the external browser;
 right-clicking a **workspace project** in the left sidebar opens that directory.
@@ -27,9 +29,13 @@ product already knows how to perform.
 
 | Right-clicked element | Menu rows |
 |---|---|
-| HTTP(S) link — Chat/assistant Markdown, inline-code URLs | **在外部浏览器中打开** · 复制链接地址 |
-| File reference — Markdown file link, `@path` chip, delivery card, file-tree row, document path label | **在资源管理器中打开** · 复制文件路径 |
-| Directory — left-sidebar workspace project, `@folder/` chip, file-tree directory row, file-tree header | **在资源管理器中打开** · 复制文件夹路径 |
+| HTTP(S) link — Chat/assistant Markdown, inline-code URLs | **Open in external browser** · Copy link address |
+| File reference — Markdown file link, `@path` chip, delivery card, file-tree row, document path label | **Show in File Explorer** · Copy file path |
+| Directory — left-sidebar workspace project, `@folder/` chip, file-tree directory row, file-tree header | **Show in File Explorer** · Copy folder path |
+
+Labels follow the active UI language. The plugin registers a Simplified Chinese dictionary
+(`在外部浏览器中打开`, `在资源管理器中打开`, `复制文件路径`, `复制文件夹路径`) beside the English one, so it
+reads correctly under either locale.
 
 Every other right-click is left exactly as it was: editable fields keep the native
 undo/cut/copy menu, and a text selection keeps the native copy menu. The menu is the
@@ -55,9 +61,10 @@ return, outside-click dismissal, and theme integration are the product's own.
   the desktop, so the plugin never touches the filesystem itself and cannot escape the
   Session's access.
 
-The second row names what the target actually is: `复制文件路径` for a file and
-`复制文件夹路径` for a directory. Which row set a target gets comes from the pure
-`menuRowsFor(target, t)`, so that wording is asserted without a renderer.
+The second row names what the target actually is — `Copy file path` for a file and
+`Copy folder path` for a directory (`复制文件路径` / `复制文件夹路径` in Chinese). Which row set a
+target gets comes from the pure `menuRowsFor(target, t)`, so that wording is asserted
+without a renderer.
 
 The Session Remote resolves a relative path against the Host process directory, so the
 plugin makes the path absolute first — from the left sidebar's Workspace list (the
@@ -164,12 +171,13 @@ removes the listener and the menu in one step — there is no second copy of any
 
 ## Verify
 
-1. Right-click an HTTP(S) link in a Chat message → "在外部浏览器中打开" appears and opens
-   the system browser.
+1. Right-click an HTTP(S) link in a Chat message → "Open in external browser"
+   (`在外部浏览器中打开`) appears and opens the system browser.
 2. Right-click an `@`-referenced file in a message, a delivery card, or a right-Sidebar
-   file-tree row → "在资源管理器中打开" appears and highlights the file in File Explorer.
-3. Right-click a workspace project name in the left sidebar → "在资源管理器中打开"
-   appears and opens that directory in File Explorer.
+   file-tree row → "Show in File Explorer" (`在资源管理器中打开`) appears and highlights the
+   file in File Explorer.
+3. Right-click a workspace project name in the left sidebar → "Show in File Explorer"
+   (`在资源管理器中打开`) appears and opens that directory in File Explorer.
 4. Right-click the message composer or selected text → the native menu is unchanged.
 
 ### Detected targets
@@ -199,21 +207,13 @@ pointer so a nested icon or label reaches its own control:
 
 ## Publishing
 
-This package is distributed from its repository, not npm. That keeps the manifest free of
-a `private` guard so a Git or tarball install needs no edit, and `pnpm add <registry name>`
-starts working the moment it is published. `dsh-right-click-menu` was unclaimed on npm
-when this was written.
+Distributed from its repository rather than npm. `package.json` carries no `private`
+guard, so a Git or tarball install needs no edit, and `pnpm add dsh-right-click-menu`
+starts working the moment it is published — the name was unclaimed on npm when this was
+written. `repository`, `bugs`, `homepage`, and `author` are already filled in; a fork
+should point them at its own URL.
 
-Three descriptive fields are deliberately absent rather than filled with placeholders.
-Add them in `package.json` for your own repository (`author` is already set):
-
-```json
-"repository": { "type": "git", "url": "git+https://github.com/<owner>/<repo>.git" },
-"bugs": { "url": "https://github.com/<owner>/<repo>/issues" },
-"homepage": "https://github.com/<owner>/<repo>#readme"
-```
-
-The published tarball is already shaped correctly. `npm pack --dry-run` reports six files
-— `package.json`, `LICENSE`, `README.md`, `cordis.patch.yml`, `lib/index.js`,
-`lib/client.js` — because `files` ships only `lib/` and the bundle patch; `test/` and
-`scripts/` stay in the repository.
+`npm pack --dry-run` reports seven files — `package.json`, `LICENSE`, `README.md`,
+`README.zh.md`, `cordis.patch.yml`, `lib/index.js`, `lib/client.js` — because `files` ships
+only `lib/`, the bundle patch, and the two READMEs; `test/` and `scripts/` stay in the
+repository.

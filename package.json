@@ -4,6 +4,14 @@
   "description": "Right-click context menu for the DSH Web GUI: a workspace project or file reference opens in the file manager, an HTTP(S) link opens in the external browser",
   "license": "MIT",
   "author": "3n",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SJcun/dsh-right-click-menu.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SJcun/dsh-right-click-menu/issues"
+  },
+  "homepage": "https://github.com/SJcun/dsh-right-click-menu#readme",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -20,7 +28,8 @@
     "lib/index.js",
     "lib/client.js",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "README.zh.md"
   ],
   "scripts": {
     "test": "node test/detection.test.mjs",
