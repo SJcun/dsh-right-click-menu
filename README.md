@@ -42,6 +42,14 @@ undo/cut/copy menu, and a text selection keeps the native copy menu. The menu is
 shared `Menu` primitive, so ordering, keyboard navigation (arrows, Tab, Escape), focus
 return, outside-click dismissal, and theme integration are the product's own.
 
+### Screenshots
+
+Captured in the Chinese UI; the labels follow whichever language is active.
+
+| Link | File reference | Workspace project |
+|---|---|---|
+| ![Right-click menu on a link](docs/menu-link.png) | ![Right-click menu on a file reference](docs/menu-file.png) | ![Right-click menu on a project in the left sidebar](docs/menu-workspace.png) |
+
 ### How each action is carried out
 
 - **Open in external browser** reuses the product's own external-navigation carrier:
@@ -116,6 +124,10 @@ metadata, so a saved file reaches an open page through client HMR.
 
 Built and verified against **DSH `0.2.0-rc.2`** (desktop runtime, Electron web GUI).
 
+This is a **Web-surface** plugin. It needs the Web composition — a page to attach a
+document listener to. Under the headless or SDK profiles there is no browser half at all,
+so the plugin is inert rather than broken.
+
 The plugin deliberately relies on public plugin surfaces — `ctx.slots`, `ctx.locale`, the
 Session Remote `session.openWorkspacePath`, the client Workspace list, and the
 `dsh-client-ui-primitives` exports `Menu`/`Toast`/icons. It has no private copy of any of
@@ -135,6 +147,63 @@ tests, but they can move with a DSH release:
 
 If a DSH upgrade stops the menu appearing, `npm test` narrows it down: the failing case
 names the surface, and the fix is a signal in that table.
+
+### The compatibility gate
+
+DSH enforces one part of this itself. Before a profile imports a plugin, it checks the
+package's `peerDependencies` on `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` against the
+single runtime version from `getDshRuntimeVersion()`; every declared range must match.
+Missing DSH peers impose no constraint, an invalid range is incompatible, and the check
+reads peer declarations — **not** `engines.dsh`. A bundle is checked when the profile's
+bundle layers load: at startup and on every recomposition, and an incompatible bundle is
+skipped and listed in `skippedBundles`.
+
+So this package declares the runtime packages it was built against:
+
+```json
+"@deepseek-ai/dsh-api-session-controller": "^0.2.0-rc.2",
+"@deepseek-ai/dsh-client-modules": "^0.2.0-rc.2",
+"@deepseek-ai/dsh-client-ui-primitives": "^0.2.0-rc.2"
+```
+
+It therefore loads on `0.2.0-rc.2 <= v < 0.3.0` and is refused, rather than half-working, on
+anything else. That is deliberate: the detection above depends on markup DSH does not
+publish, so an unverified runtime should refuse the plugin instead of quietly showing a
+menu that no longer matches its DOM.
+
+## Conventions and discovery
+
+### What the runtime actually requires
+
+Enforced by DSH itself, read out of the shipped build rather than from community advice:
+
+| Requirement | Enforced by |
+|---|---|
+| `dsh.bundle.patch` to be a bundle, `dsh.client.platform` to ship a browser half | the Loader scan and `client-modules` |
+| ESM (`"type": "module"`) with a relative `main`/`exports` | Node resolution |
+| A built client bundle at `exports["./client"]` | `client-modules` refuses a package whose `./client` is missing or malformed |
+| Every Cordis service you read declared in `inject` | Cordis refuses an undeclared `ctx.x` read |
+| `files` that include the bundle | packaging: a tarball that omits it cannot load |
+| `@deepseek-ai/dsh*` peers for the runtime you built against | [the compatibility gate](#the-compatibility-gate) |
+
+Two further conventions come from shipping the package rather than from the runtime:
+declare the Cordis services you inject, and keep a bilingual pair of READMEs
+(`README.md` + `README.zh.md`) with an `English | 中文` switch — the shape every package in
+the DSH tree uses.
+
+### There is no official submission channel
+
+DSH ships **no** third-party plugin registry, catalog endpoint, or submission process, and
+the build references none. The Plugins page's **Official** group is populated by the
+`plugins.item` slot, which the packages shipped *with* the runtime register (the official
+configuration pages), and the page's bundle list is the profile's own dependency list. So
+"official" means "shipped by DeepSeek": there is nothing to submit a third-party plugin to.
+
+Discovery happens through the ecosystem instead — publish to npm or Git and tag the
+repository with the `dsh-plugin` topic. Community catalogs and curated lists exist and will
+find you that way; they are community-run and not affiliated with DeepSeek, and they apply
+their own verification criteria, so treat a listing as a starting point rather than as
+endorsement.
 
 ## Install
 
@@ -213,7 +282,6 @@ starts working the moment it is published — the name was unclaimed on npm when
 written. `repository`, `bugs`, `homepage`, and `author` are already filled in; a fork
 should point them at its own URL.
 
-`npm pack --dry-run` reports seven files — `package.json`, `LICENSE`, `README.md`,
-`README.zh.md`, `cordis.patch.yml`, `lib/index.js`, `lib/client.js` — because `files` ships
-only `lib/`, the bundle patch, and the two READMEs; `test/` and `scripts/` stay in the
-repository.
+`npm pack --dry-run` lists exactly what the tarball carries: `package.json`, `LICENSE`, both
+READMEs, the three screenshots they reference, `cordis.patch.yml`, `lib/index.js`, and
+`lib/client.js`. `test/` and `scripts/` stay in the repository.

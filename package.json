@@ -28,6 +28,7 @@
     "lib/index.js",
     "lib/client.js",
     "cordis.patch.yml",
+    "docs/*.png",
     "README.md",
     "README.zh.md"
   ],
@@ -37,6 +38,7 @@
   },
   "keywords": [
     "dsh",
+    "dsh-plugin",
     "deepseek-harness",
     "cordis",
     "plugin",
@@ -48,7 +50,10 @@
     "node": ">=18"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "~4.0.4"
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-api-session-controller": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-modules": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.2.0-rc.2"
   },
   "dsh": {
     "bundle": {
