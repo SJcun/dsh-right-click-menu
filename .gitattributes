@@ -1,3 +1,6 @@
 # Keep the repository free of CRLF churn: every text file is stored and checked
 # out with LF, whatever the contributor's platform.
 * text=auto eol=lf
+
+# Screenshots are binary: never normalize, diff, or merge their bytes.
+*.png binary
