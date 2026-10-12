@@ -135,75 +135,20 @@ them.
 
 Detection, however, reads markup that DSH does not publish as an API. These are the
 fragile points, all in one place (`filePathOf` in `lib/client.js`) and all covered by
-tests, but they can move with a DSH release:
+tests, but they can move with a DSH release. A right-click is claimed by the first signal
+found walking outward from the pointer, so a nested icon or label reaches its own control:
 
-| Signal | Owner |
-|---|---|
-| `data-row-key="workspace:<id>"` | left sidebar project row (`client/ui-workspace`) |
-| `data-files-path`, `data-files-root`, `data-files-entry` | right sidebar file tree (`client/ui-sidebar-files`) |
-| `data-ref-chip="file"\|"folder"` | `@` reference chips (`client/ui-primitives`) |
-| class names matching `fileLink` / `fileMention` | Markdown file links (generated CSS-module names) |
-| `title` naming an absolute path on a button/link | delivery cards, path labels |
+| # | Signal | Resolves to |
+|---|---|---|
+| 1 | `<a href="http(s)://…">` | URL |
+| 2 | `data-row-key="workspace:<id>"` — left sidebar project row | directory, from `ctx.workspaces.list` |
+| 3 | `data-files-path` / `data-files-root` / `data-files-entry` — right Sidebar file tree | file or directory |
+| 4 | `data-ref-chip` = `file`/`folder`, a Markdown file-link class, or a button/link tooltip naming an absolute path | file or directory |
 
-If a DSH upgrade stops the menu appearing, `npm test` narrows it down: the failing case
-names the surface, and the fix is a signal in that table.
-
-### The compatibility gate
-
-DSH enforces one part of this itself. Before a profile imports a plugin, it checks the
-package's `peerDependencies` on `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` against the
-single runtime version from `getDshRuntimeVersion()`; every declared range must match.
-Missing DSH peers impose no constraint, an invalid range is incompatible, and the check
-reads peer declarations — **not** `engines.dsh`. A bundle is checked when the profile's
-bundle layers load: at startup and on every recomposition, and an incompatible bundle is
-skipped and listed in `skippedBundles`.
-
-So this package declares the runtime packages it was built against:
-
-```json
-"@deepseek-ai/dsh-api-session-controller": "^0.2.0-rc.2",
-"@deepseek-ai/dsh-client-modules": "^0.2.0-rc.2",
-"@deepseek-ai/dsh-client-ui-primitives": "^0.2.0-rc.2"
-```
-
-It therefore loads on `0.2.0-rc.2 <= v < 0.3.0` and is refused, rather than half-working, on
-anything else. That is deliberate: the detection above depends on markup DSH does not
-publish, so an unverified runtime should refuse the plugin instead of quietly showing a
-menu that no longer matches its DOM.
-
-## Conventions and discovery
-
-### What the runtime actually requires
-
-Enforced by DSH itself, read out of the shipped build rather than from community advice:
-
-| Requirement | Enforced by |
-|---|---|
-| `dsh.bundle.patch` to be a bundle, `dsh.client.platform` to ship a browser half | the Loader scan and `client-modules` |
-| ESM (`"type": "module"`) with a relative `main`/`exports` | Node resolution |
-| A built client bundle at `exports["./client"]` | `client-modules` refuses a package whose `./client` is missing or malformed |
-| Every Cordis service you read declared in `inject` | Cordis refuses an undeclared `ctx.x` read |
-| `files` that include the bundle | packaging: a tarball that omits it cannot load |
-| `@deepseek-ai/dsh*` peers for the runtime you built against | [the compatibility gate](#the-compatibility-gate) |
-
-Two further conventions come from shipping the package rather than from the runtime:
-declare the Cordis services you inject, and keep a bilingual pair of READMEs
-(`README.md` + `README.zh.md`) with an `English | 中文` switch — the shape every package in
-the DSH tree uses.
-
-### There is no official submission channel
-
-DSH ships **no** third-party plugin registry, catalog endpoint, or submission process, and
-the build references none. The Plugins page's **Official** group is populated by the
-`plugins.item` slot, which the packages shipped *with* the runtime register (the official
-configuration pages), and the page's bundle list is the profile's own dependency list. So
-"official" means "shipped by DeepSeek": there is nothing to submit a third-party plugin to.
-
-Discovery happens through the ecosystem instead — publish to npm or Git and tag the
-repository with the `dsh-plugin` topic. Community catalogs and curated lists exist and will
-find you that way; they are community-run and not affiliated with DeepSeek, and they apply
-their own verification criteria, so treat a listing as a starting point rather than as
-endorsement.
+The package also declares `@deepseek-ai/dsh*` peers for the runtime it targets, so DSH
+refuses it on an unverified version rather than loading a menu that no longer matches the
+DOM. If an upgrade does stop the menu appearing, `npm test` narrows it down: the failing
+case names the surface, and the fix is a row in that table.
 
 ## Install
 
@@ -249,18 +194,6 @@ removes the listener and the menu in one step — there is no second copy of any
    (`在资源管理器中打开`) appears and opens that directory in File Explorer.
 4. Right-click the message composer or selected text → the native menu is unchanged.
 
-### Detected targets
-
-A right-click is claimed through these signals, in this order, walking outward from the
-pointer so a nested icon or label reaches its own control:
-
-| # | Signal | Resolves to |
-|---|---|---|
-| 1 | `<a href="http(s)://…">` | URL |
-| 2 | `data-row-key="workspace:<id>"` — left sidebar project row | directory, read from `ctx.workspaces.list` |
-| 3 | `data-files-path` / `data-files-root` / `data-files-entry` — right Sidebar file tree | file or directory |
-| 4 | `data-ref-chip` = `file`/`folder`, a Markdown file-link class, or a button/link tooltip naming an absolute path | file or directory |
-
 ## Known limitations
 
 - A Markdown file link whose path renders as an image carries no `title` (its tooltip is
@@ -276,12 +209,6 @@ pointer so a nested icon or label reaches its own control:
 
 ## Publishing
 
-Distributed from its repository rather than npm. `package.json` carries no `private`
-guard, so a Git or tarball install needs no edit, and `pnpm add dsh-right-click-menu`
-starts working the moment it is published — the name was unclaimed on npm when this was
-written. `repository`, `bugs`, `homepage`, and `author` are already filled in; a fork
-should point them at its own URL.
-
-`npm pack --dry-run` lists exactly what the tarball carries: `package.json`, `LICENSE`, both
-READMEs, the three screenshots they reference, `cordis.patch.yml`, `lib/index.js`, and
-`lib/client.js`. `test/` and `scripts/` stay in the repository.
+Distributed from its repository rather than npm, so `package.json` carries no `private`
+guard and a Git or tarball install needs no edit. `repository`, `bugs`, `homepage`, and
+`author` are filled in; a fork should point them at its own URL.

@@ -88,54 +88,16 @@ npm run check:live    # node scripts/live-bundle.mjs [baseUrl]
 
 插件刻意只依赖公开的插件接口 —— `ctx.slots`、`ctx.locale`、Session Remote 的 `session.openWorkspacePath`、客户端 Workspace 列表，以及 `dsh-client-ui-primitives` 导出的 `Menu`/`Toast`/图标。这些都没有私有副本。
 
-但**检测**读取的是 DSH 未作为 API 发布的标记。这些是脆弱点，全部集中在一处（`lib/client.js` 的 `filePathOf`），且全部有测试覆盖，但可能随 DSH 版本变动：
+但**检测**读取的是 DSH 未作为 API 发布的标记。这些是脆弱点，全部集中在一处（`lib/client.js` 的 `filePathOf`），且全部有测试覆盖，但可能随 DSH 版本变动。右键由**从指针向外逐层向上第一个命中**的标记接管，因此嵌在里面的图标或文字也能归到它自己的控件：
 
-| 标记 | 归属 |
-|---|---|
-| `data-row-key="workspace:<id>"` | 左侧栏项目行（`client/ui-workspace`） |
-| `data-files-path`、`data-files-root`、`data-files-entry` | 右侧栏文件树（`client/ui-sidebar-files`） |
-| `data-ref-chip="file"\|"folder"` | `@` 引用芯片（`client/ui-primitives`） |
-| 匹配 `fileLink` / `fileMention` 的类名 | Markdown 文件链接（生成的 CSS module 类名） |
-| 按钮/链接上指向绝对路径的 `title` | 交付卡片、路径标签 |
+| # | 标记 | 解析为 |
+|---|---|---|
+| 1 | `<a href="http(s)://…">` | URL |
+| 2 | `data-row-key="workspace:<id>"` —— 左侧栏项目行 | 目录，读自 `ctx.workspaces.list` |
+| 3 | `data-files-path` / `data-files-root` / `data-files-entry` —— 右侧栏文件树 | 文件或目录 |
+| 4 | `data-ref-chip` = `file`/`folder`、Markdown 文件链接类名，或指向绝对路径的按钮/链接 `title` | 文件或目录 |
 
-若某次 DSH 升级后菜单失效，`npm test` 可以定位：失败的用例会点名出问题的界面，修复点就是上表里的某个标记。
-
-### 版本兼容闸门
-
-其中一部分由 DSH 自己强制。在 profile 导入插件之前，DSH 会把包的 `peerDependencies` 里 `@deepseek-ai/dsh` 与 `@deepseek-ai/dsh-*` 的声明，对照 `getDshRuntimeVersion()` 返回的**唯一**运行时版本逐一检查，每个声明的区间都必须匹配。**未声明 DSH peer 则不施加任何约束**，区间非法即视为不兼容，而且这项检查看的是 peer 声明，**不是** `engines.dsh`。bundle 的检查发生在 profile 加载各 bundle 层时（启动时以及每次重组），不兼容的 bundle 会被跳过并列入 `skippedBundles`。
-
-因此本包声明了它所针对的运行时包：
-
-```json
-"@deepseek-ai/dsh-api-session-controller": "^0.2.0-rc.2",
-"@deepseek-ai/dsh-client-modules": "^0.2.0-rc.2",
-"@deepseek-ai/dsh-client-ui-primitives": "^0.2.0-rc.2"
-```
-
-于是它只在 `0.2.0-rc.2 <= v < 0.3.0` 下加载，其它版本会被拒绝，而不是半可用。这是有意的：上面的检测依赖 DSH 未公开的标记，因此未经核验的运行时应当直接拒绝这个插件，而不是悄悄弹出一个已经对不上 DOM 的菜单。
-
-## 规范与收录
-
-### 运行时真正强制的要求
-
-下列要求由 DSH 自身强制，是从交付的构建里读出来的，不是社区建议：
-
-| 要求 | 由谁强制 |
-|---|---|
-| `dsh.bundle.patch` 才算 bundle，`dsh.client.platform` 才带浏览器半侧 | Loader 扫描与 `client-modules` |
-| ESM（`"type": "module"`）＋ 相对路径的 `main`/`exports` | Node 解析 |
-| `exports["./client"]` 指向已构建的浏览器 bundle | `client-modules` 会拒绝 `./client` 缺失或格式错误的包 |
-| 读到的每个 Cordis 服务都写进 `inject` | Cordis 拒绝未声明的 `ctx.x` 读取 |
-| `files` 必须包含该 bundle | 打包层面：漏掉它的 tarball 装不上 |
-| 针对目标运行时声明 `@deepseek-ai/dsh*` peer | [版本兼容闸门](#版本兼容闸门) |
-
-另有两条来自"如何交付一个包"、而非运行时强制：注入哪些 Cordis 服务就声明哪些；README 保持中英成对（`README.md` + `README.zh.md`），并带 `English | 中文` 切换 —— 这是 DSH 代码树里每个包的写法。
-
-### 没有官方投稿通道
-
-DSH **不提供**第三方插件 registry、目录接口或投稿流程，构建里也没有引用任何这类东西。插件页的**官方**分组由 `plugins.item` slot 填充，而注册它的是**随运行时一起发布**的包（那些官方配置页）；页面上的 bundle 列表就是 profile 自己的依赖列表。所以"官方"的含义是"DeepSeek 随包发布"：第三方插件没有任何可投稿的地方。
-
-发现渠道在生态里 —— 发到 npm 或 Git，并给仓库打上 `dsh-plugin` topic。社区目录与精选列表会据此找到你；它们由社区运营、与 DeepSeek 无关，并且各自有验证标准，因此被收录只应视为起点，而不是背书。
+本包同时也声明了它所针对运行时的 `@deepseek-ai/dsh*` peer，因此 DSH 在未经核验的版本上会拒绝加载它，而不是弹出一个已经对不上 DOM 的菜单。若某次升级后菜单真的失效，`npm test` 可以定位：失败的用例会点名出问题的界面，修复点就是上表里的某一行。
 
 ## 安装
 
@@ -168,17 +130,6 @@ pnpm add <spec>
 3. 右键左侧栏的工作区项目名 → 出现「在资源管理器中打开」，并在资源管理器中打开该目录。
 4. 右键消息输入框或选中的文本 → 原生菜单不变。
 
-### 会接管的目标
-
-右键按下后按下列顺序、由内向外逐层向上找，因此嵌在里面的图标或文字也能归到它自己的控件：
-
-| # | 标记 | 解析为 |
-|---|---|---|
-| 1 | `<a href="http(s)://…">` | URL |
-| 2 | `data-row-key="workspace:<id>"` —— 左侧栏项目行 | 目录，读自 `ctx.workspaces.list` |
-| 3 | `data-files-path` / `data-files-root` / `data-files-entry` —— 右侧栏文件树 | 文件或目录 |
-| 4 | `data-ref-chip` = `file`/`folder`、Markdown 文件链接类名，或指向绝对路径的按钮/链接 `title` | 文件或目录 |
-
 ## 已知限制
 
 - 路径按图片渲染的 Markdown 文件链接没有 `title`（它的悬浮提示被图片预览占用），因此只有当它自身的标签就是路径时才能识别。
@@ -188,6 +139,4 @@ pnpm add <spec>
 
 ## 发布
 
-本包通过仓库分发，而非 npm。`package.json` 不带 `private` 守卫，所以用 Git 或 tarball 安装无需改动，而一旦发布 `pnpm add dsh-right-click-menu` 即可用 —— 撰写时该包名在 npm 上未被占用。`repository`、`bugs`、`homepage`、`author` 均已填好；fork 应把它们指向自己的地址。
-
-`npm pack --dry-run` 列出的就是 tarball 的全部内容：`package.json`、`LICENSE`、两份 README、它们引用的三张截图、`cordis.patch.yml`、`lib/index.js`、`lib/client.js`。`test/` 与 `scripts/` 留在仓库里。
+本包通过仓库分发，而非 npm，因此 `package.json` 不带 `private` 守卫，用 Git 或 tarball 安装无需改动。`repository`、`bugs`、`homepage`、`author` 均已填好；fork 应把它们指向自己的地址。
